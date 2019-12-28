@@ -1,13 +1,19 @@
 package com.mihir.test;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 
+import android.Manifest;
+import android.app.Activity;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.ParcelFileDescriptor;
 import android.view.View;
 
@@ -29,6 +35,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         extendedFAB = findViewById(R.id.addPhotosButton);
+        verifyStoragePermissions(this);
     }
 
 
@@ -50,6 +57,27 @@ public class MainActivity extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == REQUEST_IMAGE_OPEN && resultCode == RESULT_OK) {
+
+            // Here, thisActivity is the current activity
+            if (ContextCompat.checkSelfPermission(this,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                    != PackageManager.PERMISSION_GRANTED) {
+
+                // Permission is not granted
+                // Should we show an explanation?
+
+                // No explanation needed; request the permission
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQUEST_EXTERNAL_STORAGE
+                );
+
+                // MY_PERMISSIONS_REQUEST_READ_CONTACTS is an
+                // app-defined int constant. The callback method gets the
+                // result of the request.
+
+            }
+
+
             Uri imageUri = data.getData();
             // Do work with full size photo saved at fullPhotoUri
             System.out.println("Yayyy!");
@@ -62,13 +90,21 @@ public class MainActivity extends AppCompatActivity {
 
                 System.out.println("This is our path: " + imageUri.getPath());
                 String[] compressedImagePath = imageUri.getPath().split(":");
-                FileOutputStream outFile = openFileOutput(compressedImagePath[1] + "_compressed.jpeg",
-                        MODE_PRIVATE);
-                image.compress(Bitmap.CompressFormat.JPEG, 0, outFile);
-                System.out.println("Compressed!!!");
-                outFile.close();
+                if (!Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
+                    //handle case of no SDCARD present
+                    System.out.println("NO SDCARD");
+                } else {
+                    File inFile = new File(Environment
+                            .getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                            + "/compressed_photo.jpeg");
+                    FileOutputStream outFile = new FileOutputStream(inFile);
+                    image.compress(Bitmap.CompressFormat.JPEG, 0, outFile);
 
-                parcelFileDescriptor.close();
+                    System.out.println("Compressed!!!");
+                    outFile.close();
+                    parcelFileDescriptor.close();
+                }
+
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -76,6 +112,33 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+
+    private static final int REQUEST_EXTERNAL_STORAGE = 1;
+    private static String[] PERMISSIONS_STORAGE = {
+            Manifest.permission.READ_EXTERNAL_STORAGE,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE
+    };
+
+    /**
+     * Checks if the app has permission to write to device storage
+     * <p>
+     * If the app does not has permission then the user will be prompted to grant permissions
+     *
+     * @param activity
+     */
+    public static void verifyStoragePermissions(Activity activity) {
+        // Check if we have write permission
+        int permission = ActivityCompat.checkSelfPermission(activity, Manifest.permission.WRITE_EXTERNAL_STORAGE);
+
+        if (permission != PackageManager.PERMISSION_GRANTED) {
+            // We don't have permission so prompt the user
+            ActivityCompat.requestPermissions(
+                    activity,
+                    PERMISSIONS_STORAGE,
+                    REQUEST_EXTERNAL_STORAGE
+            );
+        }
+    }
 
 }
 
