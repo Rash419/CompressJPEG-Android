@@ -10,11 +10,10 @@ import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
-import android.os.ParcelFileDescriptor;
+import android.provider.MediaStore;
 import android.view.View;
 
 import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
@@ -78,18 +77,12 @@ public class MainActivity extends AppCompatActivity {
             }
 
 
-            Uri imageUri = data.getData();
+
             // Do work with full size photo saved at fullPhotoUri
-            System.out.println("Yayyy!");
             try {
-                ParcelFileDescriptor parcelFileDescriptor =
-                        getContentResolver().openFileDescriptor(imageUri, "r");
-                FileDescriptor fileDescriptor = parcelFileDescriptor.getFileDescriptor();
-                Bitmap image = BitmapFactory.decodeFileDescriptor(fileDescriptor);
 
-
-                System.out.println("This is our path: " + imageUri.getPath());
-                String[] compressedImagePath = imageUri.getPath().split(":");
+                Uri imageUri = data.getData();
+                Bitmap image = MediaStore.Images.Media.getBitmap(this.getContentResolver(), imageUri);
                 if (!Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
                     //handle case of no SDCARD present
                     System.out.println("NO SDCARD");
@@ -99,10 +92,7 @@ public class MainActivity extends AppCompatActivity {
                             + "/compressed_photo.jpeg");
                     FileOutputStream outFile = new FileOutputStream(inFile);
                     image.compress(Bitmap.CompressFormat.JPEG, 0, outFile);
-
-                    System.out.println("Compressed!!!");
                     outFile.close();
-                    parcelFileDescriptor.close();
                 }
 
             } catch (IOException e) {
